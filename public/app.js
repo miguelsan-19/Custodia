@@ -340,6 +340,7 @@
       '<div class="amount neg">' + fmtMoney(p.amount) + '</div>' +
       pendHtml +
       '<div class="actions">' + payBtn +
+      '<button class="btn small pay" data-pay-purchase="' + p.id + '">Pagar</button>' +
       '<button class="btn small" data-edit-purchase="' + p.id + '">Editar</button>' +
       '<button class="btn small danger" data-del-purchase="' + p.id + '">Eliminar</button>' +
       '</div>' +
@@ -780,6 +781,25 @@
           await loadState();
           renderAll();
           toast('Cuota registrada como pagada.');
+        } catch (err) { toast(err.message); }
+        return;
+      }
+
+      const payPurchase = e.target.closest('[data-pay-purchase]');
+      if (payPurchase) {
+        const id = payPurchase.dataset.payPurchase;
+        const p = state.purchases.find(x => x.id === id);
+        const remaining = p ? remainingOfPurchase(p) : 0;
+        const msg = (p && p.installments > 1 && remaining > 0)
+          ? 'Esta compra aún tiene pendiente ' + fmtMoney(remaining) +
+            ' en cuotas. ¿Confirmas que la pagas por completo y la eliminas del registro?'
+          : '¿Registrar esta compra como pagada y eliminar el registro?';
+        if (!confirm(msg)) return;
+        try {
+          await api('DELETE', '/api/card-purchases/' + id);
+          await loadState();
+          renderAll();
+          toast('Compra pagada y eliminada del registro.');
         } catch (err) { toast(err.message); }
         return;
       }

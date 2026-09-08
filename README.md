@@ -95,7 +95,7 @@ Si quieres probar cambios antes de publicarlos:
   - **Transferencia**: movimiento entre dos personas dentro de la misma cuenta.
 - **Resumen**: muestra el saldo de cada persona y el total en la cuenta. Toca a una persona para ver solo sus movimientos.
 - **Filtros**: por persona, tipo y búsqueda por nota.
-- **Tarjetas** (gastos propios, aparte del reparto): registra tus tarjetas de crédito (nombre, últimos 4 dígitos y límite opcional) y tus compras (fecha, concepto, monto). Si una compra se pagó en **cuotas**, indica el total de cuotas y marca con **"Pagar cuota"** cada mes que la pagues; la app te muestra cuánto te queda pendiente por tarjeta y el total de deuda. Las compras **no** afectan el saldo de las personas.
+- **Tarjetas** (gastos propios, aparte del reparto): registra tus tarjetas de crédito (nombre, últimos 4 dígitos y límite opcional) y tus compras (fecha, concepto, monto). Si una compra se pagó en **cuotas**, indica el total de cuotas y marca con **"Pagar cuota"** cada mes que la pagues. Cuando terminas de pagar una compra, el botón **"Pagar"** la elimina del registro. Las compras **no** afectan el saldo de las personas.
 
 ---
 

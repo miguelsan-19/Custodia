@@ -120,6 +120,8 @@ input:focus, select:focus {
 .btn.primary:hover { background: var(--primary-dark); }
 .btn.danger { background: var(--red-bg); color: var(--red); }
 .btn.danger:hover { background: #fecaca; }
+.btn.pay { background: var(--green-bg); color: var(--green); }
+.btn.pay:hover { background: #bbf7d0; }
 .btn.ghost { background: transparent; border: 1px solid var(--border); }
 .btn.ghost:hover { background: var(--bg); }
 .btn.block { width: 100%; margin-top: 4px; }
