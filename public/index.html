@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custodia</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<!-- Pantalla de acceso / configuración -->
+<div id="auth-screen" class="screen hidden">
+  <div class="card auth-card">
+    <div class="logo">S/</div>
+    <h1>Custodia</h1>
+    <p id="auth-msg">Ingresa tu contraseña para continuar.</p>
+    <form id="auth-form" autocomplete="on">
+      <label>Contraseña
+        <input type="password" id="auth-password" autocomplete="current-password" required>
+      </label>
+      <div id="setup-fields" class="hidden">
+        <label>Símbolo de moneda
+          <input type="text" id="auth-currency" value="S/" maxlength="8" placeholder="S/">
+        </label>
+      </div>
+      <button type="submit" id="auth-btn" class="btn primary block">Ingresar</button>
+      <div id="auth-error" class="error hidden"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Pantalla principal -->
+<div id="app-screen" class="screen hidden">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Custodia</h1>
+      <p class="subtitle">Saldo total en cuenta: <strong id="total-display">-</strong></p>
+    </div>
+    <div class="top-actions">
+      <button id="btn-new-movement" class="btn primary">+ Movimiento</button>
+      <button id="btn-logout" class="btn ghost">Salir</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="resumen">Resumen</button>
+    <button class="tab" data-view="movimientos">Movimientos</button>
+    <button class="tab" data-view="personas">Personas</button>
+  </nav>
+
+  <main>
+    <section id="view-resumen" class="view">
+      <div class="cards">
+        <div class="mini-card">
+          <span class="mini-label">Total en cuenta</span>
+          <span class="mini-value" id="card-total">-</span>
+        </div>
+        <div class="mini-card">
+          <span class="mini-label">Personas</span>
+          <span class="mini-value" id="card-persons">0</span>
+        </div>
+        <div class="mini-card">
+          <span class="mini-label">Movimientos</span>
+          <span class="mini-value" id="card-movements">0</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Saldo por persona</h2>
+        <p class="hint">Toca una persona para ver sus movimientos.</p>
+        <div id="resumen-list" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-movimientos" class="view hidden">
+      <div class="card">
+        <div class="filters">
+          <select id="filter-person">
+            <option value="all">Todas las personas</option>
+          </select>
+          <select id="filter-type">
+            <option value="all">Todos los tipos</option>
+            <option value="ingreso">Ingresos</option>
+            <option value="egreso">Egresos</option>
+            <option value="transferencia">Transferencias</option>
+          </select>
+          <input type="search" id="filter-search" placeholder="Buscar en la nota...">
+        </div>
+        <p class="hint" id="movements-count"></p>
+        <div id="movimientos-list" class="list"></div>
+      </div>
+    </section>
+
+    <section id="view-personas" class="view hidden">
+      <div class="card">
+        <h2>Personas</h2>
+        <form id="person-form" class="inline-form">
+          <input type="text" id="person-name" placeholder="Nombre de la persona" maxlength="60" required>
+          <button type="submit" class="btn primary">Agregar</button>
+        </form>
+        <div id="personas-list" class="list"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal de movimiento -->
+<div id="modal-movement" class="modal hidden">
+  <div class="modal-backdrop" data-close="modal"></div>
+  <div class="modal-box card">
+    <h2 id="movement-modal-title">Nuevo movimiento</h2>
+    <form id="movement-form">
+      <label>Tipo
+        <select id="mv-type">
+          <option value="ingreso">Ingreso (dinero que llega)</option>
+          <option value="egreso">Egreso (retiro / pago)</option>
+          <option value="transferencia">Transferencia (de una persona a otra)</option>
+        </select>
+      </label>
+      <div id="mv-person-fields">
+        <div id="field-from">
+          <label id="label-from">Persona</label>
+          <select id="mv-from"></select>
+        </div>
+        <div id="field-to" class="hidden">
+          <label>Para</label>
+          <select id="mv-to"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Fecha
+          <input type="date" id="mv-date" required>
+        </label>
+        <label>Monto
+          <input type="number" id="mv-amount" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required>
+        </label>
+      </div>
+      <label>Nota (opcional)
+        <input type="text" id="mv-note" maxlength="500" placeholder="Ej.: depósito inicial">
+      </label>
+      <div id="mv-error" class="error hidden"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close="modal">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
