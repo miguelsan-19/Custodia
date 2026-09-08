@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 title Custodia (modo local)
 cd /d "%~dp0"
 echo ============================================

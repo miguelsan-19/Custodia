@@ -1,4 +1,4 @@
-﻿# Custodia
+# Custodia
 
 Aplicación web para administrar el dinero de varias personas que convive en una sola cuenta bancaria.
 Cada persona tiene su propio saldo, calculado automáticamente a partir de todos sus movimientos.

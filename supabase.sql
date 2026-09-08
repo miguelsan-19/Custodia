@@ -1,4 +1,4 @@
-﻿-- ============================================
+-- ============================================
 --  CUSTODIA  ·  Esquema Supabase
 --  Pega todo este bloque en: Supabase > SQL Editor > New query > Run
 --
