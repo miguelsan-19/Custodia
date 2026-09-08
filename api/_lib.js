@@ -147,6 +147,67 @@ const MOVEMENT_COLUMNS = `
   type, amount, date::text AS date, note,
   created_at AS "createdAt", updated_at AS "updatedAt"`;
 
+const CARD_COLUMNS = `
+  id, name, last4 AS "last4", credit_limit AS "creditLimit", created_at AS "createdAt"`;
+
+const PURCHASE_COLUMNS = `
+  id, card_id AS "cardId", date::text AS date, concept, amount,
+  installments, paid_installments AS "paidInstallments", note,
+  created_at AS "createdAt", updated_at AS "updatedAt"`;
+
+async function validateCard(body) {
+  const name = String(body.name || '').trim().slice(0, 60);
+  if (!name) return { ok: false, error: 'El nombre de la tarjeta es obligatorio.' };
+  const last4 = String(body.last4 || '').trim().replace(/\s+/g, '').slice(0, 4);
+  if (!/^\d{0,4}$/.test(last4)) {
+    return { ok: false, error: 'Los últimos 4 dígitos deben ser solo números (máx. 4).' };
+  }
+  let creditLimit = null;
+  if (body.creditLimit !== null && body.creditLimit !== undefined && body.creditLimit !== '') {
+    const n = Number(body.creditLimit);
+    if (!Number.isInteger(n) || n <= 0 || n > 999999999999) {
+      return { ok: false, error: 'El límite de crédito no es válido.' };
+    }
+    creditLimit = n;
+  }
+  return { ok: true, card: { name, last4, creditLimit } };
+}
+
+async function validateCardPurchase(body) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.date || ''))) {
+    return { ok: false, error: 'Fecha no válida.' };
+  }
+  const concept = String(body.concept || '').trim().slice(0, 200);
+  if (!concept) return { ok: false, error: 'Describe la compra (concepto).' };
+  const amount = body.amount;
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return { ok: false, error: 'El monto debe ser un número mayor que cero.' };
+  }
+  if (amount > 999999999999) return { ok: false, error: 'El monto es demasiado grande.' };
+  const installments = body.installments;
+  if (!Number.isInteger(installments) || installments < 1 || installments > 120) {
+    return { ok: false, error: 'El número de cuotas debe estar entre 1 y 120.' };
+  }
+  const card = await query(`SELECT 1 FROM ${SC}.cards WHERE id = $1`, [body.cardId]);
+  if (card.rowCount === 0) return { ok: false, error: 'La tarjeta no existe.' };
+  const paid = Number.isInteger(body.paidInstallments) ? body.paidInstallments : 0;
+  if (paid < 0 || paid > installments) {
+    return { ok: false, error: 'Las cuotas pagadas no son válidas.' };
+  }
+  return {
+    ok: true,
+    purchase: {
+      cardId: body.cardId,
+      date: body.date,
+      concept,
+      amount,
+      installments,
+      paidInstallments: paid,
+      note: String(body.note || '').slice(0, 300)
+    }
+  };
+}
+
 module.exports = {
   SC,
   query,
@@ -158,6 +219,10 @@ module.exports = {
   getSettings,
   hashPassword,
   validateMovement,
+  validateCard,
+  validateCardPurchase,
   computeBalances,
-  MOVEMENT_COLUMNS
+  MOVEMENT_COLUMNS,
+  CARD_COLUMNS,
+  PURCHASE_COLUMNS
 };

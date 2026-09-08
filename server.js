@@ -19,7 +19,11 @@ const handlers = {
   persons: require('./api/persons'),
   personId: require('./api/persons/[id]'),
   movements: require('./api/movements'),
-  movementId: require('./api/movements/[id]')
+  movementId: require('./api/movements/[id]'),
+  cards: require('./api/cards'),
+  cardId: require('./api/cards/[id]'),
+  cardPurchases: require('./api/card-purchases'),
+  cardPurchaseId: require('./api/card-purchases/[id]')
 };
 
 function loadEnv() {
@@ -118,7 +122,9 @@ async function dispatch(req, res) {
     '/api/logout': 'logout',
     '/api/state': 'state',
     '/api/persons': 'persons',
-    '/api/movements': 'movements'
+    '/api/movements': 'movements',
+    '/api/cards': 'cards',
+    '/api/card-purchases': 'cardPurchases'
   };
 
   if (staticRoutes[p]) {
@@ -136,6 +142,18 @@ async function dispatch(req, res) {
   if (m) {
     req.query.id = m[1];
     await handlers.movementId(req, adaptRes(res));
+    return;
+  }
+  m = p.match(/^\/api\/cards\/([^/]+)$/);
+  if (m) {
+    req.query.id = m[1];
+    await handlers.cardId(req, adaptRes(res));
+    return;
+  }
+  m = p.match(/^\/api\/card-purchases\/([^/]+)$/);
+  if (m) {
+    req.query.id = m[1];
+    await handlers.cardPurchaseId(req, adaptRes(res));
     return;
   }
 

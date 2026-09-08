@@ -53,3 +53,36 @@ create table if not exists cuentas.sessions (
   token text primary key,
   created_at timestamptz not null default now()
 );
+
+-- ============================================
+--  APARTADO: TARJETAS DE CRÉDITO (gastos propios)
+--  Estas compras NO se mezclan con el saldo compartido.
+-- ============================================
+
+create table if not exists cuentas.cards (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  last4 text not null default '',
+  credit_limit bigint check (credit_limit is null or credit_limit > 0),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists uniq_cards_lower_name
+  on cuentas.cards (lower(name));
+
+create table if not exists cuentas.card_purchases (
+  id uuid primary key default gen_random_uuid(),
+  card_id uuid not null references cuentas.cards(id) on delete restrict,
+  date date not null,
+  concept text not null,
+  amount bigint not null check (amount > 0),
+  installments integer not null default 1 check (installments between 1 and 120),
+  paid_installments integer not null default 0
+    check (paid_installments between 0 and installments),
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_card_purchases_card on cuentas.card_purchases(card_id);
+create index if not exists idx_card_purchases_date on cuentas.card_purchases(date);

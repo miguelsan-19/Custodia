@@ -91,9 +91,15 @@ input:focus, select:focus {
 .form-row { display: flex; gap: 12px; }
 .form-row > * { flex: 1; }
 
-.inline-form { display: flex; gap: 8px; margin-bottom: 16px; }
+.inline-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .inline-form input { margin-top: 0; flex: 1; }
 .inline-form button { white-space: nowrap; }
+#view-tarjetas .inline-form input { flex: 1 1 130px; }
+#view-tarjetas .inline-form #card-name { flex: 3 1 180px; }
+@media (max-width: 560px) {
+  #view-tarjetas .inline-form { align-items: stretch; }
+  #view-tarjetas .inline-form .btn { flex: 1; }
+}
 
 /* Botones */
 .btn {
@@ -244,6 +250,11 @@ h2 { margin: 0 0 10px; font-size: 1.05rem; }
 .badge.ingreso { background: var(--green-bg); color: var(--green); }
 .badge.egreso { background: var(--red-bg); color: var(--red); }
 .badge.transferencia { background: var(--amber-bg); color: var(--amber); }
+.badge.contado { background: #cffafe; color: #0e7490; }
+.badge.cuotas { background: #ede9fe; color: #6d28d9; }
+
+.list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.list-head h2 { margin: 0; }
 
 .row .actions { display: flex; gap: 4px; flex-shrink: 0; }
 

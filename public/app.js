@@ -5,13 +5,18 @@
     token: localStorage.getItem('token') || '',
     persons: [],
     movements: [],
+    cards: [],
+    purchases: [],
     balances: {},
     currency: 'S/',
     view: 'resumen',
     filterPerson: 'all',
     filterType: 'all',
     filterSearch: '',
-    editingId: null
+    purchaseFilter: 'all',
+    editingId: null,
+    editingCardId: null,
+    editingPurchaseId: null
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -87,6 +92,8 @@
     const data = await api('GET', '/api/state');
     state.persons = data.persons || [];
     state.movements = data.movements || [];
+    state.cards = data.cards || [];
+    state.purchases = data.purchases || [];
     state.balances = data.balances || {};
     state.currency = data.currency || state.currency;
   }
@@ -96,6 +103,8 @@
     renderMovementFilters();
     renderMovements();
     renderPersons();
+    renderCards();
+    renderPurchases();
     els['total-display'].textContent = fmtMoney(state.movements.reduce((acc, m) => {
       if (m.type === 'ingreso') return acc + m.amount;
       if (m.type === 'egreso') return acc - m.amount;
@@ -237,6 +246,231 @@
     }).join('');
   }
 
+  /* ---------------- Tarjetas y compras ---------------- */
+
+  function cardName(id) {
+    const c = state.cards.find(x => x.id === id);
+    return c ? c.name : '(tarjeta eliminada)';
+  }
+
+  function remainingOfPurchase(p) {
+    return Math.round((p.amount * (p.installments - p.paidInstallments)) / p.installments);
+  }
+
+  function cardTotals(cardId) {
+    let total = 0;
+    let pending = 0;
+    for (const p of state.purchases.filter(x => x.cardId === cardId)) {
+      total += p.amount;
+      pending += remainingOfPurchase(p);
+    }
+    return { total, pending };
+  }
+
+  function renderCards() {
+    const sorted = state.cards.slice().sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const list = els['cards-list'];
+    if (!sorted.length) {
+      list.innerHTML = '<div class="empty">Registra tu primera tarjeta de crédito.</div>';
+    } else {
+      list.innerHTML = sorted.map(c => {
+        const t = cardTotals(c.id);
+        const meta = [c.last4 ? '•••• ' + c.last4 : '',
+          c.creditLimit ? 'Límite ' + fmtMoney(c.creditLimit) : '']
+          .filter(Boolean).join(' · ');
+        return '<div class="row">' +
+          '<div class="avatar" style="background:#6d28d9">' + escapeHtml(initials(c.name)) + '</div>' +
+          '<div class="body"><div class="name">' + escapeHtml(c.name) + '</div>' +
+          (meta ? '<div class="note">' + escapeHtml(meta) + '</div>' : '') + '</div>' +
+          '<div class="amount pos">' + fmtMoney(t.pending) + '</div>' +
+          '<div class="actions">' +
+          '<button class="btn small" data-edit-card="' + c.id + '">Editar</button>' +
+          '<button class="btn small danger" data-del-card="' + c.id + '">Eliminar</button>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+    }
+  }
+
+  function populatePurchaseSelects() {
+    const sorted = state.cards.slice().sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    els['pc-card'].innerHTML = sorted.map(c =>
+      '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>').join('');
+    els['purchase-card-filter'].innerHTML = '<option value="all">Todas las tarjetas</option>' +
+      sorted.map(c => '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>').join('');
+  }
+
+  function filteredPurchases() {
+    const list = state.purchases.slice().sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (a.createdAt || '') > (b.createdAt || '') ? -1 : 1;
+    });
+    if (state.purchaseFilter !== 'all') {
+      return list.filter(p => p.cardId === state.purchaseFilter);
+    }
+    return list;
+  }
+
+  function purchaseRow(p) {
+    const badge = p.installments > 1
+      ? '<span class="badge cuotas">Cuota ' + Math.min(p.paidInstallments + 1, p.installments) + '/' + p.installments + '</span>'
+      : '<span class="badge contado">Contado</span>';
+    let pendHtml = '';
+    if (p.installments > 1) {
+      const rem = remainingOfPurchase(p);
+      pendHtml = rem > 0
+        ? '<div class="amount neutral">Pend. ' + fmtMoney(rem) + '</div>'
+        : '<div class="amount pos">Pagado</div>';
+    }
+    let payBtn = '';
+    if (p.installments > 1 && p.paidInstallments < p.installments) {
+      const next = p.paidInstallments + 1;
+      const cuota = Math.round(p.amount / p.installments);
+      payBtn = '<button class="btn small" data-pay-installment="' + p.id + '" title="Marcar como pagada la cuota ' +
+        next + ' de ' + p.installments + ' (' + fmtMoney(cuota) + ')">Pagar cuota</button>';
+    }
+    const note = p.note ? '<div class="note">' + escapeHtml(p.note) + '</div>' : '';
+
+    return '<div class="row">' +
+      '<div class="avatar" style="background:#0e7490">' + escapeHtml(initials(p.concept)) + '</div>' +
+      '<div class="body"><div class="name">' + escapeHtml(p.concept) + '</div>' +
+      '<div class="note">' + escapeHtml(cardName(p.cardId)) + '</div>' + note + '</div>' +
+      badge +
+      '<div class="date">' + fmtDate(p.date) + '</div>' +
+      '<div class="amount neg">' + fmtMoney(p.amount) + '</div>' +
+      pendHtml +
+      '<div class="actions">' + payBtn +
+      '<button class="btn small" data-edit-purchase="' + p.id + '">Editar</button>' +
+      '<button class="btn small danger" data-del-purchase="' + p.id + '">Eliminar</button>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function renderPurchases() {
+    populatePurchaseSelects();
+    els['purchase-card-filter'].value = state.purchaseFilter;
+    const list = filteredPurchases();
+    els['purchases-count'].textContent = list.length
+      ? list.length + (list.length === 1 ? ' compra' : ' compras')
+      : '';
+    els['purchases-list'].innerHTML = list.length
+      ? list.map(purchaseRow).join('')
+      : '<div class="empty">No hay compras registradas con este filtro.</div>';
+
+    const debt = state.purchases.reduce((a, p) => a + p.amount, 0);
+    const pending = state.purchases.reduce((a, p) => a + remainingOfPurchase(p), 0);
+    els['card-total-debt'].textContent = fmtMoney(debt);
+    els['card-count'].textContent = state.cards.length;
+    els['card-pending'].textContent = fmtMoney(pending);
+  }
+
+  function openPurchaseModal(editId) {
+    state.editingPurchaseId = editId || null;
+    els['purchase-modal-title'].textContent = editId ? 'Editar compra' : 'Nueva compra';
+    populatePurchaseSelects();
+    const p = editId ? state.purchases.find(x => x.id === editId) : null;
+    els['pc-card'].value = p ? p.cardId : (state.cards[0] ? state.cards[0].id : '');
+    els['pc-date'].value = p ? p.date : today();
+    els['pc-concept'].value = p ? p.concept : '';
+    els['pc-amount'].value = p ? (p.amount / 100).toFixed(2) : '';
+    els['pc-installments'].value = p ? p.installments : 1;
+    els['pc-note'].value = p ? p.note : '';
+    showError(els['pc-error'], null);
+    updatePurchaseHint();
+    els['modal-purchase'].classList.remove('hidden');
+  }
+
+  function updatePurchaseHint() {
+    const n = Number(els['pc-installments'].value) || 1;
+    const amt = Math.round((Number(els['pc-amount'].value.replace(',', '.')) || 0) * 100);
+    if (n > 1 && amt > 0) {
+      els['pc-hint'].textContent = 'Cuota mensual aprox. de ' + fmtMoney(Math.round(amt / n)) +
+        ' durante ' + n + (n === 1 ? ' mes' : ' meses');
+    } else {
+      els['pc-hint'].textContent = '';
+    }
+  }
+
+  async function savePurchase(e) {
+    e.preventDefault();
+    const amount = Math.round((Number(els['pc-amount'].value.replace(',', '.')) || 0) * 100);
+    const body = {
+      cardId: els['pc-card'].value,
+      date: els['pc-date'].value,
+      concept: els['pc-concept'].value,
+      amount,
+      installments: Number(els['pc-installments'].value) || 1,
+      paidInstallments: 0,
+      note: els['pc-note'].value
+    };
+    try {
+      if (state.editingPurchaseId) {
+        const prev = state.purchases.find(x => x.id === state.editingPurchaseId);
+        if (prev) body.paidInstallments = prev.paidInstallments;
+        await api('PUT', '/api/card-purchases/' + state.editingPurchaseId, body);
+        toast('Compra actualizada.');
+      } else {
+        await api('POST', '/api/card-purchases', body);
+        toast('Compra registrada.');
+      }
+      closePurchaseModal();
+      await loadState();
+      renderAll();
+    } catch (err) {
+      showError(els['pc-error'], err.message);
+    }
+  }
+
+  function closePurchaseModal() {
+    els['modal-purchase'].classList.add('hidden');
+  }
+
+  function openCardEdit(id) {
+    const c = state.cards.find(x => x.id === id);
+    if (!c) return;
+    state.editingCardId = id;
+    els['card-name'].value = c.name;
+    els['card-last4'].value = c.last4 || '';
+    els['card-limit'].value = c.creditLimit ? (c.creditLimit / 100).toFixed(2) : '';
+    els['card-submit'].textContent = 'Guardar';
+    els['card-cancel'].classList.remove('hidden');
+    els['card-name'].focus();
+  }
+
+  function resetCardForm() {
+    state.editingCardId = null;
+    els['card-name'].value = '';
+    els['card-last4'].value = '';
+    els['card-limit'].value = '';
+    els['card-submit'].textContent = 'Agregar';
+    els['card-cancel'].classList.add('hidden');
+  }
+
+  async function saveCard(e) {
+    e.preventDefault();
+    const body = {
+      name: els['card-name'].value,
+      last4: els['card-last4'].value,
+      creditLimit: els['card-limit'].value === ''
+        ? null
+        : Math.round((Number(els['card-limit'].value.replace(',', '.')) || 0) * 100)
+    };
+    try {
+      if (state.editingCardId) {
+        await api('PATCH', '/api/cards/' + state.editingCardId, body);
+        toast('Tarjeta actualizada.');
+      } else {
+        await api('POST', '/api/cards', body);
+        toast('Tarjeta agregada.');
+      }
+      resetCardForm();
+      await loadState();
+      renderAll();
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
   /* ---------------- Modal de movimiento ---------------- */
 
   function fillPersonSelects() {
@@ -325,8 +559,13 @@
       'btn-new-movement', 'btn-logout', 'resumen-list', 'card-total', 'card-persons', 'card-movements',
       'filter-person', 'filter-type', 'filter-search', 'movements-count', 'movimientos-list',
       'person-form', 'person-name', 'personas-list',
+      'card-form', 'card-name', 'card-last4', 'card-limit', 'card-submit', 'card-cancel',
+      'cards-list', 'btn-new-purchase', 'purchase-card-filter', 'purchases-count', 'purchases-list',
+      'card-total-debt', 'card-count', 'card-pending',
       'modal-movement', 'movement-modal-title', 'movement-form', 'mv-type', 'mv-from', 'mv-to',
       'mv-date', 'mv-amount', 'mv-note', 'mv-error', 'field-to', 'label-from', 'mv-person-fields',
+      'modal-purchase', 'purchase-modal-title', 'purchase-form', 'pc-card', 'pc-date', 'pc-concept',
+      'pc-amount', 'pc-installments', 'pc-note', 'pc-hint', 'pc-error',
       'toast'];
     ids.forEach(id => { els[id] = document.getElementById(id); });
   }
@@ -388,7 +627,7 @@
     document.querySelectorAll('.tab').forEach(t => {
       t.classList.toggle('active', t.dataset.view === view);
     });
-    ['resumen', 'movimientos', 'personas'].forEach(v => {
+    ['resumen', 'movimientos', 'personas', 'tarjetas'].forEach(v => {
       $('#view-' + v).classList.toggle('hidden', v !== view);
     });
   }
@@ -431,6 +670,20 @@
     els['movement-form'].addEventListener('submit', saveMovement);
     els['mv-type'].addEventListener('change', updateTypeFields);
     els['mv-from'].addEventListener('change', updateTypeFields);
+
+    els['card-form'].addEventListener('submit', saveCard);
+    els['card-cancel'].addEventListener('click', resetCardForm);
+    els['btn-new-purchase'].addEventListener('click', () => openPurchaseModal(null));
+    els['purchase-form'].addEventListener('submit', savePurchase);
+    els['pc-installments'].addEventListener('input', updatePurchaseHint);
+    els['pc-amount'].addEventListener('input', updatePurchaseHint);
+    els['purchase-card-filter'].addEventListener('change', () => {
+      state.purchaseFilter = els['purchase-card-filter'].value;
+      renderPurchases();
+    });
+    document.querySelectorAll('[data-close="purchase-modal"]').forEach(el => {
+      el.addEventListener('click', closePurchaseModal);
+    });
 
     document.querySelectorAll('[data-close="modal"], .modal-backdrop').forEach(el => {
       el.addEventListener('click', closeModal);
@@ -492,10 +745,63 @@
         } catch (err) { toast(err.message); }
         return;
       }
+
+      const editCard = e.target.closest('[data-edit-card]');
+      if (editCard) { openCardEdit(editCard.dataset.editCard); return; }
+
+      const delCard = e.target.closest('[data-del-card]');
+      if (delCard) {
+        if (!confirm('¿Eliminar esta tarjeta? No se eliminarán las compras si ya tiene registros.')) return;
+        try {
+          await api('DELETE', '/api/cards/' + delCard.dataset.delCard);
+          if (state.purchaseFilter === delCard.dataset.delCard) state.purchaseFilter = 'all';
+          await loadState();
+          renderAll();
+          toast('Tarjeta eliminada.');
+        } catch (err) { toast(err.message); }
+        return;
+      }
+
+      const payInst = e.target.closest('[data-pay-installment]');
+      if (payInst) {
+        const id = payInst.dataset.payInstallment;
+        const p = state.purchases.find(x => x.id === id);
+        if (!p || p.paidInstallments >= p.installments) return;
+        try {
+          await api('PUT', '/api/card-purchases/' + id, {
+            cardId: p.cardId,
+            date: p.date,
+            concept: p.concept,
+            amount: p.amount,
+            installments: p.installments,
+            paidInstallments: p.paidInstallments + 1,
+            note: p.note
+          });
+          await loadState();
+          renderAll();
+          toast('Cuota registrada como pagada.');
+        } catch (err) { toast(err.message); }
+        return;
+      }
+
+      const editPurchase = e.target.closest('[data-edit-purchase]');
+      if (editPurchase) { openPurchaseModal(editPurchase.dataset.editPurchase); return; }
+
+      const delPurchase = e.target.closest('[data-del-purchase]');
+      if (delPurchase) {
+        if (!confirm('¿Eliminar esta compra? Esta acción no se puede deshacer.')) return;
+        try {
+          await api('DELETE', '/api/card-purchases/' + delPurchase.dataset.delPurchase);
+          await loadState();
+          renderAll();
+          toast('Compra eliminada.');
+        } catch (err) { toast(err.message); }
+        return;
+      }
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') { closeModal(); closePurchaseModal(); }
     });
   }
 

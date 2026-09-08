@@ -46,6 +46,7 @@
     <button class="tab active" data-view="resumen">Resumen</button>
     <button class="tab" data-view="movimientos">Movimientos</button>
     <button class="tab" data-view="personas">Personas</button>
+    <button class="tab" data-view="tarjetas">Tarjetas</button>
   </nav>
 
   <main>
@@ -100,6 +101,49 @@
         <div id="personas-list" class="list"></div>
       </div>
     </section>
+
+    <section id="view-tarjetas" class="view hidden">
+      <div class="cards">
+        <div class="mini-card">
+          <span class="mini-label">Deuda en tarjetas</span>
+          <span class="mini-value" id="card-total-debt">-</span>
+        </div>
+        <div class="mini-card">
+          <span class="mini-label">Tarjetas</span>
+          <span class="mini-value" id="card-count">0</span>
+        </div>
+        <div class="mini-card">
+          <span class="mini-label">Pendiente en cuotas</span>
+          <span class="mini-value" id="card-pending">-</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tarjetas de crédito</h2>
+        <form id="card-form" class="inline-form">
+          <input type="text" id="card-name" placeholder="Nombre, ej.: Visa BCP" maxlength="60" required>
+          <input type="text" id="card-last4" placeholder="Últimos 4 díg." maxlength="4" inputmode="numeric">
+          <input type="number" id="card-limit" placeholder="Límite (opcional)" min="0.01" step="0.01" inputmode="decimal">
+          <button type="submit" id="card-submit" class="btn primary">Agregar</button>
+          <button type="button" id="card-cancel" class="btn ghost hidden">Cancelar</button>
+        </form>
+        <div id="cards-list" class="list"></div>
+      </div>
+
+      <div class="card">
+        <div class="list-head">
+          <h2>Compras</h2>
+          <button id="btn-new-purchase" class="btn primary">+ Nueva compra</button>
+        </div>
+        <div class="filters">
+          <select id="purchase-card-filter">
+            <option value="all">Todas las tarjetas</option>
+          </select>
+        </div>
+        <p class="hint" id="purchases-count"></p>
+        <div id="purchases-list" class="list"></div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -140,6 +184,42 @@
       <div id="mv-error" class="error hidden"></div>
       <div class="modal-actions">
         <button type="button" class="btn ghost" data-close="modal">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de compra con tarjeta -->
+<div id="modal-purchase" class="modal hidden">
+  <div class="modal-backdrop" data-close="purchase-modal"></div>
+  <div class="modal-box card">
+    <h2 id="purchase-modal-title">Nueva compra</h2>
+    <form id="purchase-form">
+      <label>Tarjeta
+        <select id="pc-card"></select>
+      </label>
+      <label>Fecha
+        <input type="date" id="pc-date" required>
+      </label>
+      <label>Concepto
+        <input type="text" id="pc-concept" maxlength="200" placeholder="Ej.: Smart TV" required>
+      </label>
+      <div class="form-row">
+        <label>Monto
+          <input type="number" id="pc-amount" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required>
+        </label>
+        <label>Cuotas
+          <input type="number" id="pc-installments" min="1" max="120" step="1" value="1">
+        </label>
+      </div>
+      <label>Nota (opcional)
+        <input type="text" id="pc-note" maxlength="300" placeholder="Ej.: 12 cuotas, tienda Ripley">
+      </label>
+      <p class="hint" id="pc-hint"></p>
+      <div id="pc-error" class="error hidden"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close="purchase-modal">Cancelar</button>
         <button type="submit" class="btn primary">Guardar</button>
       </div>
     </form>
